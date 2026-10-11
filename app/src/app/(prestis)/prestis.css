@@ -1,0 +1,151 @@
+@import 'tailwindcss';
+
+/* Tokens del diseño "Garante Protocol" exportado de Stitch */
+@theme inline {
+  --color-on-secondary-fixed: #002111;
+  --color-on-primary: #003824;
+  --color-inverse-surface: #e0e3df;
+  --color-tertiary-fixed-dim: #4de082;
+  --color-surface: #101412;
+  --color-on-error: #690005;
+  --color-surface-container: #1c201e;
+  --color-primary: #4edea3;
+  --color-error: #ffb4ab;
+  --color-surface-container-low: #181c1a;
+  --color-on-tertiary-container: #00431e;
+  --color-surface-tint: #4edea3;
+  --color-on-primary-fixed-variant: #005236;
+  --color-on-background: #e0e3df;
+  --color-secondary-fixed: #bbeecd;
+  --color-background: #101412;
+  --color-secondary-fixed-dim: #a0d2b2;
+  --color-on-primary-fixed: #002113;
+  --color-primary-fixed: #6ffbbe;
+  --color-surface-variant: #323633;
+  --color-outline: #86948a;
+  --color-surface-container-lowest: #0b0f0d;
+  --color-secondary: #a0d2b2;
+  --color-on-secondary: #043822;
+  --color-surface-container-highest: #323633;
+  --color-inverse-on-surface: #2d312f;
+  --color-outline-variant: #3c4a42;
+  --color-on-secondary-container: #92c4a4;
+  --color-secondary-container: #235239;
+  --color-surface-container-high: #272b28;
+  --color-on-tertiary: #003919;
+  --color-on-tertiary-fixed: #00210c;
+  --color-tertiary: #4de082;
+  --color-primary-container: #10b981;
+  --color-primary-fixed-dim: #4edea3;
+  --color-tertiary-container: #11bb62;
+  --color-on-error-container: #ffdad6;
+  --color-on-primary-container: #00422b;
+  --color-inverse-primary: #006c49;
+  --color-on-secondary-fixed-variant: #214f37;
+  --color-on-surface-variant: #bbcabf;
+  --color-on-tertiary-fixed-variant: #005227;
+  --color-surface-bright: #363a38;
+  --color-error-container: #93000a;
+  --color-surface-dim: #101412;
+  --color-on-surface: #e0e3df;
+  --color-tertiary-fixed: #6dfe9c;
+
+  --spacing-margin: 1rem;
+  --spacing-gutter: 1rem;
+  --spacing-space-xs: 0.25rem;
+  --spacing-space-sm: 0.5rem;
+  --spacing-space-md: 1rem;
+  --spacing-space-lg: 1.5rem;
+  --spacing-space-xl: 2rem;
+
+  --font-label-sm: var(--fuente-inter);
+  --font-label-md: var(--fuente-inter);
+  --font-label-lg: var(--fuente-inter);
+  --font-body-sm: var(--fuente-inter);
+  --font-body-md: var(--fuente-inter);
+  --font-body-lg: var(--fuente-inter);
+  --font-headline-sm: var(--fuente-jakarta);
+  --font-headline-md: var(--fuente-jakarta);
+  --font-headline-lg: var(--fuente-jakarta);
+  --font-headline-lg-mobile: var(--fuente-jakarta);
+  --font-display-score: var(--fuente-jakarta);
+  --font-display-score-mobile: var(--fuente-jakarta);
+  --font-metric-mono: var(--fuente-mono);
+
+  --text-label-sm: 10px;
+  --text-label-sm--line-height: 12px;
+  --text-label-sm--letter-spacing: 0.06em;
+  --text-label-sm--font-weight: 700;
+  --text-label-md: 12px;
+  --text-label-md--line-height: 16px;
+  --text-label-md--letter-spacing: 0.02em;
+  --text-label-md--font-weight: 600;
+  --text-label-lg: 14px;
+  --text-label-lg--line-height: 18px;
+  --text-label-lg--letter-spacing: 0.01em;
+  --text-label-lg--font-weight: 600;
+  --text-body-sm: 12px;
+  --text-body-sm--line-height: 16px;
+  --text-body-md: 14px;
+  --text-body-md--line-height: 20px;
+  --text-body-lg: 16px;
+  --text-body-lg--line-height: 24px;
+  --text-metric-mono: 13px;
+  --text-metric-mono--line-height: 16px;
+  --text-metric-mono--font-weight: 500;
+  --text-headline-sm: 18px;
+  --text-headline-sm--line-height: 24px;
+  --text-headline-sm--font-weight: 600;
+  --text-headline-md: 22px;
+  --text-headline-md--line-height: 28px;
+  --text-headline-md--letter-spacing: -0.01em;
+  --text-headline-md--font-weight: 600;
+  --text-headline-lg-mobile: 26px;
+  --text-headline-lg-mobile--line-height: 32px;
+  --text-headline-lg-mobile--letter-spacing: -0.02em;
+  --text-headline-lg-mobile--font-weight: 700;
+  --text-display-score-mobile: 44px;
+  --text-display-score-mobile--line-height: 48px;
+  --text-display-score-mobile--letter-spacing: -0.03em;
+  --text-display-score-mobile--font-weight: 800;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility icono-relleno {
+  font-variation-settings: 'FILL' 1;
+}
+
+@utility sin-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  background-color: var(--color-surface);
+  overscroll-behavior: none;
+}
