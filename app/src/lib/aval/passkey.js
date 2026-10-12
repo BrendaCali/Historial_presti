@@ -93,7 +93,17 @@ export function realBackend() {
 
 // ---------------------------------------------------------------------------------------------------------------------
 
-const STORAGE_KEY = 'preste.simulated-passkey.v1';
+// Solo para el modo de prueba: con "?u=ana" en la dirección se usa una ranura distinta, para probar dos personas a la vez.
+function ranura() {
+  try {
+    const u = new URLSearchParams(location.search).get('u');
+    if (u) sessionStorage.setItem('preste.sim.u', u.replace(/[^a-z0-9]/gi, '').slice(0, 12));
+    return sessionStorage.getItem('preste.sim.u') ?? '';
+  } catch {
+    return '';
+  }
+}
+const clave = () => `preste.simulated-passkey.v1${ranura() ? `.${ranura()}` : ''}`;
 
 const toHex = (data) => bytesToHex(data).slice(2);
 const fromHex = (text) => Uint8Array.from(text.match(/../g)?.map((b) => parseInt(b, 16)) ?? []);
@@ -101,7 +111,7 @@ const fromB64Url = (v) => Uint8Array.from(atob(v.replace(/-/g, '+').replace(/_/g
 
 function load() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(clave());
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -111,7 +121,7 @@ function load() {
 export const hasSimulatedAccount = () => load() !== null;
 export const forgetSimulatedAccount = () => {
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(clave());
   } catch {
     // sin almacenamiento: nada que borrar
   }
@@ -149,7 +159,7 @@ export function simulatedBackend() {
       const privateKey = await crypto.subtle.exportKey('jwk', pair.privateKey);
       const credentialId = crypto.getRandomValues(new Uint8Array(32));
       const secret = toHex(crypto.getRandomValues(new Uint8Array(32)));
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ secret, privateKey, credentialId: toBase64Url(credentialId) }));
+      localStorage.setItem(clave(), JSON.stringify({ secret, privateKey, credentialId: toBase64Url(credentialId) }));
       key = publicKeyOf(privateKey);
       return { credentialId, prfEnabled: true, prfOutput: await prf(secret, req.prfSalt) };
     },

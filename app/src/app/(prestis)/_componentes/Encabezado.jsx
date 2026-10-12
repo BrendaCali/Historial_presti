@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Icono from './Icono';
+import ChipSesion from './ChipSesion';
 
 const BARRA = 'fixed top-0 inset-x-0 md:left-64 z-50 bg-surface/85 backdrop-blur-xl pt-safe shadow-[0_4px_20px_rgba(0,0,0,0.35)]';
 
@@ -33,8 +34,9 @@ export default function Encabezado({ titulo }) {
         <div className="flex items-center gap-space-xs">
           <div className="flex flex-col items-end pr-1">
             <span className="font-headline-sm text-headline-sm font-semibold text-on-surface tracking-tight hidden sm:inline">{titulo}</span>
-            <span className="font-label-sm text-label-sm text-secondary truncate max-w-[100px]">Garante Protocol</span>
+            <span className="font-label-sm text-label-sm text-secondary truncate max-w-[100px]">sobre Aval</span>
           </div>
+          <ChipSesion />
           <Avatar />
         </div>
       </div>

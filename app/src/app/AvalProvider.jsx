@@ -10,6 +10,8 @@ import { AvalError, createAval, createRelayerClient } from '../vendor/aval-sdk/i
 import { RELAYER_BASE, SESSION_MINUTES, monad, publicClient, transport, usd } from '../lib/aval/config';
 import { forgetSimulatedAccount, realBackend, simulatedBackend } from '../lib/aval/passkey';
 import { createAccount, signIn } from '../lib/aval/session';
+import { cifrar, descifrar } from '../lib/memoria';
+import { construirPeticion, generarCodigoQR, llamarMercado } from '../lib/mercado/cliente';
 
 // Estado de Preste sobre Aval. TODO lo que se muestra del usuario se lee de la cadena (permisos, pedidos, recibos,
 // reputación): nada de eso se guarda en el navegador. La sesión de firma vive solo en memoria.
@@ -62,6 +64,8 @@ export default function AvalProvider({ children }) {
   const [metricas, setMetricas] = useState({ primeraTxMs: null, listoMs: null, huellasHastaListo: null });
   const [historial, setHistorial] = useState([]);
   const [errorInicio, setErrorInicio] = useState('');
+  const [primeraTx, setPrimeraTx] = useState(null); // { hash, ms, titulo }: primera transacción confirmada desde el inicio
+  const [toques, setToques] = useState(0); // toques del usuario hasta tener la cuenta lista
 
   const backend = useRef(null);
   const sesion = useRef(null);
@@ -96,6 +100,10 @@ export default function AvalProvider({ children }) {
     const resultado = await fn();
     anotar(titulo, { hash: resultado?.hash, ms: performance.now() - t0 });
     setMetricas((m) => (m.primeraTxMs === null && inicio.current ? { ...m, primeraTxMs: performance.now() - inicio.current } : m));
+    // Mera UX: la primera transacción confirmada en Monad desde que el usuario tocó "Crear cuenta".
+    if (resultado?.hash && inicio.current) {
+      setPrimeraTx((p) => p ?? { hash: resultado.hash, ms: performance.now() - inicio.current, titulo });
+    }
     return resultado;
   }, [anotar]);
 
@@ -174,6 +182,8 @@ export default function AvalProvider({ children }) {
     if (ocupado) return;
     setOcupado('start');
     setErrorInicio('');
+    setToques(1);
+    setPrimeraTx(null);
     setNecesitaPrueba(false);
     setPasos(PASOS.map((p) => ({ ...p })));
     setModo(tipo);
@@ -206,6 +216,7 @@ export default function AvalProvider({ children }) {
     if (ocupado || !sesion.current) return;
     setOcupado('retry');
     setErrorInicio('');
+    setToques((n) => n + 1);
     try {
       await preparar();
       await refrescar();
@@ -223,6 +234,7 @@ export default function AvalProvider({ children }) {
     if (ocupado) return;
     setOcupado('enter');
     setErrorInicio('');
+    setToques(1);
     setNecesitaPrueba(false);
     setModo(tipo);
     inicio.current = performance.now();
@@ -275,6 +287,8 @@ export default function AvalProvider({ children }) {
     setHistorial([]);
     setBloqueaEn(null);
     setMetricas({ primeraTxMs: null, listoMs: null, huellasHastaListo: null });
+    setPrimeraTx(null);
+    setToques(0);
     setFase('out');
     avisar('info', 'Datos locales borrados. Entra con tu huella: todo se reconstruye desde la cadena.');
   }, [avisar]);
@@ -358,8 +372,62 @@ export default function AvalProvider({ children }) {
     avisar('ok', 'Pago aprobado con tu huella y ejecutado.');
   }), [actuar, avisar, medir, refrescar, relayer]);
 
+  // Memoria cifrada del asistente. Se cifra aquí con la clave derivada de la huella; el servidor solo guarda texto cifrado.
+  const MAX_MENSAJES = 40;
+  const leerMemoria = useCallback(async () => {
+    const espacios = sesion.current?.memoria;
+    if (!espacios) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    const r = await fetch(`/api/memoria?id=${espacios.id}`, { cache: 'no-store' });
+    if (r.status === 404) return { mensajes: [], almacen: (await r.json()).almacen, bytes: 0 };
+    if (!r.ok) throw new Error('No se pudo leer la memoria.');
+    const { sobre, almacen } = await r.json();
+    const dato = await descifrar(espacios, sobre);
+    return { mensajes: dato.mensajes ?? [], almacen, bytes: sobre.ct.length, guardadoEn: dato.t };
+  }, []);
+
+  const guardarMemoria = useCallback(async (mensajes) => {
+    const espacios = sesion.current?.memoria;
+    if (!espacios) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    const recortados = mensajes.filter((m) => !m.error).slice(-MAX_MENSAJES);
+    const sobre = await cifrar(espacios, { mensajes: recortados, t: Date.now() });
+    const r = await fetch('/api/memoria', { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ id: espacios.id, sobre }) });
+    if (!r.ok) throw new Error('No se pudo guardar la memoria.');
+    const j = await r.json();
+    return { almacen: j.almacen, bytes: j.bytes, idCorto: `${espacios.id.slice(0, 10)}…` };
+  }, []);
+
+  const borrarMemoria = useCallback(async () => {
+    const espacios = sesion.current?.memoria;
+    if (!espacios) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    await fetch(`/api/memoria?id=${espacios.id}`, { method: 'DELETE' });
+  }, []);
+
+  // Mercado de préstamos: cada petición se firma con la cuenta de Mera (sin ventanas). Las lecturas ("ver-…") no
+  // renuevan la sesión, para que el refresco automático de las pantallas no la mantenga abierta para siempre.
+  const mercado = useCallback(async (accion, datos = {}) => {
+    const s = sesion.current;
+    if (!s) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    const r = await llamarMercado(s.account, accion, datos);
+    if (!accion.startsWith('ver-')) tocar();
+    return r;
+  }, [tocar]);
+
+  const peticionFirmada = useCallback(async (accion, datos) => {
+    const s = sesion.current;
+    if (!s) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    return construirPeticion(s.account, accion, datos);
+  }, []);
+
+  const codigoQR = useCallback(async () => {
+    const s = sesion.current;
+    if (!s) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    return generarCodigoQR(s.account);
+  }, []);
+
   const valor = {
-    fase, modo, pasos, direccion, datos, aviso, errorInicio, ocupado, bloqueaEn, necesitaPrueba, metricas, historial,
+    mercado, codigoQR, peticionFirmada,
+    memoriaId: sesion.current?.memoria?.id ?? null, leerMemoria, guardarMemoria, borrarMemoria,
+    fase, modo, pasos, direccion, datos, aviso, errorInicio, primeraTx, toques, ocupado, bloqueaEn, necesitaPrueba, metricas, historial,
     permisoActual, pendientes, relayer,
     empezar, reintentar, entrar, bloquear, olvidar, crearPermiso, revocarPermiso, pedirSaldo, aprobar,
     refrescar: () => actuar('refresh', refrescar),

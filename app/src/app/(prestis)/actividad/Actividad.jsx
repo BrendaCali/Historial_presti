@@ -82,6 +82,42 @@ export default function Actividad() {
         ))}
       </Tarjeta>
 
+      <Tarjeta icono="timer" titulo="Alcance de la sesión (qué pide huella y qué no)">
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          Al entrar con tu huella se abre una sesión de firma de Mera: la clave vive solo en memoria y se bloquea sola a los 10 minutos sin actividad. El reloj de arriba muestra cuánto falta.
+        </p>
+        <div className="flex flex-col gap-1">
+          {[
+            ['Sin pedir huella', 'Ver tu saldo, permisos, recibos y reputación · crear o revocar un permiso · pedir saldo de prueba · hablar con el asistente y recuperar su memoria', 'bg-primary-container/20'],
+            ['Siempre pide huella', 'Aprobar un pago grande (la firma se verifica en la cadena con P256) · volver a entrar tras bloquear la sesión o recargar la página', 'bg-tertiary/20'],
+          ].map(([t, d, fondo]) => (
+            <div key={t} className={`rounded-lg p-space-sm ${fondo}`}>
+              <span className="font-label-lg text-label-lg text-on-surface block">{t}</span>
+              <span className="font-body-sm text-body-sm text-on-surface-variant">{d}</span>
+            </div>
+          ))}
+        </div>
+      </Tarjeta>
+
+      <Tarjeta icono="key" titulo="Una huella, varias llaves (Mera)">
+        <p className="font-body-sm text-body-sm text-on-surface-variant">
+          Todas salen de la misma huella, nada se guarda en el navegador, y se vuelven a derivar en cualquier dispositivo.
+        </p>
+        <div className="flex flex-col gap-1">
+          {[
+            ['Cuenta de Monad', 'Firma permisos y aprobaciones', 'sal por defecto de Mera'],
+            ['Clave de memoria', 'Cifra la conversación del asistente (no es de cuenta)', 'preste/memoria/clave/v1'],
+            ['Identificador anónimo', 'Dónde se guarda esa memoria, sin ligarla a tu dirección', 'preste/memoria/id/v1'],
+          ].map(([n, uso, esp]) => (
+            <div key={n} className="bg-surface-container-low rounded-lg p-space-sm">
+              <span className="font-label-lg text-label-lg text-on-surface block">{n}</span>
+              <span className="font-body-sm text-body-sm text-on-surface-variant block">{uso}</span>
+              <code className="font-metric-mono text-label-sm text-primary">{esp}</code>
+            </div>
+          ))}
+        </div>
+      </Tarjeta>
+
       <Tarjeta icono="speed" titulo="Experiencia con Mera">
         <div className="grid grid-cols-3 gap-space-sm text-center">
           <div className="bg-surface-container-low rounded-lg py-space-sm"><span className="font-label-sm text-label-sm text-on-surface-variant block">Cuenta lista</span><span className="font-metric-mono text-metric-mono text-on-surface">{metricas.listoMs === null ? '—' : `${(metricas.listoMs / 1000).toFixed(1)} s`}</span></div>

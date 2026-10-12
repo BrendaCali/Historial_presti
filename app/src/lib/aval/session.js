@@ -6,6 +6,7 @@ import { toViemAccount } from '@category-labs/mera/viem';
 import { HDKey } from '@scure/bip32';
 import { entropyToMnemonic, mnemonicToSeedSync } from '@scure/bip39';
 import { wordlist } from '@scure/bip39/wordlists/english.js';
+import { derivarEspacios } from '../memoria';
 
 // Sesión de la cuenta del usuario. La cuenta sale de la passkey con Mera (PRF -> BIP-39 -> BIP-44): la misma
 // passkey da siempre la misma cuenta, en cualquier dispositivo, sin guardar nada. Mientras la sesión está abierta se
@@ -13,15 +14,18 @@ import { wordlist } from '@scure/bip39/wordlists/english.js';
 
 const rpId = () => window.location.hostname;
 
-function openSession(prfOutput, credentialId) {
+async function openSession(prfOutput, credentialId) {
   const mnemonic = entropyToMnemonic(prfOutput, wordlist);
   const node = HDKey.fromMasterSeed(mnemonicToSeedSync(mnemonic)).derive("m/44'/60'/0'/0/0");
   if (!node.privateKey) throw new Error('No se pudo derivar la cuenta');
   const session = createSecp256k1SigningSession({ privateKey: node.privateKey });
+  // De la misma passkey salen más claves que NO son de cuenta (memoria cifrada del asistente). La salida PRF no se guarda.
+  const memoria = await derivarEspacios(prfOutput);
   return {
     address: getEvmAddress(session.publicKey),
     account: toViemAccount(session),
     credentialId,
+    memoria,
     end: () => session.end(),
   };
 }
@@ -35,11 +39,11 @@ export async function createAccount(backend, name) {
   });
   const publicKey = backend.capturedKey();
   if (!publicKey) throw new Error('No se pudo leer la clave de la passkey');
-  return { session: openSession(created.prfOutput, created.credentialId), publicKey };
+  return { session: await openSession(created.prfOutput, created.credentialId), publicKey };
 }
 
 // Entra con una passkey existente: una ceremonia, y todo el estado se reconstruye desde la cadena.
 export async function signIn(backend) {
   const { credentialId, prfOutput } = await getPasskeyPrfOutput({ rpId: rpId(), webAuthnClient: backend.webAuthnClient });
-  return openSession(prfOutput, credentialId);
+  return await openSession(prfOutput, credentialId);
 }

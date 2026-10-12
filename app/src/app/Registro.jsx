@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useAval } from './AvalProvider';
+import { txUrl } from '../lib/aval/config';
 
 const ESTADO = { pending: '', doing: ' activo', done: ' hecho', skipped: ' hecho', error: ' error' };
 
@@ -10,7 +11,7 @@ const ESTADO = { pending: '', doing: ' activo', done: ' hecho', skipped: ' hecho
 // prueba y registra la clave P256 de la huella para poder aprobar pagos. El usuario no necesita MON.
 export default function Registro() {
   const router = useRouter();
-  const { fase, pasos, empezar, entrar, reintentar, ocupado, necesitaPrueba, errorInicio, metricas, direccion, datos, usd } = useAval();
+  const { fase, pasos, empezar, entrar, reintentar, ocupado, necesitaPrueba, errorInicio, metricas, direccion, datos, usd, primeraTx, toques, modo } = useAval();
   const trabajando = ocupado === 'start' || ocupado === 'enter' || ocupado === 'retry';
   const huboError = pasos.some((p) => p.state === 'error');
 
@@ -74,10 +75,26 @@ export default function Registro() {
               <div className="dato"><span>Saldo de prueba</span><code>{datos ? `${usd(datos.saldo)} tUSD` : 'consultando…'}</code></div>
               <div className="dato"><span>Huella registrada para aprobar pagos</span><code>{datos?.p256 ? 'sí (clave P256 en la cadena)' : 'no'}</code></div>
               {metricas.listoMs !== null && (
-                <div className="dato"><span>Tiempo hasta tener la cuenta lista</span><code>{(metricas.listoMs / 1000).toFixed(1)} s · {metricas.huellasHastaListo} verificación(es) de huella</code></div>
+                <div className="dato">
+                  <span>Del inicio a la cuenta lista</span>
+                  <code>{(metricas.listoMs / 1000).toFixed(1)} s · {toques} toque{toques === 1 ? '' : 's'} · {metricas.huellasHastaListo} verificación(es) de huella</code>
+                </div>
               )}
+              {primeraTx && (
+                <div className="dato">
+                  <span>Primera transacción confirmada en Monad ({primeraTx.titulo})</span>
+                  <a href={txUrl(primeraTx.hash)} target="_blank" rel="noreferrer"><code>{(primeraTx.ms / 1000).toFixed(1)} s desde el primer toque · {primeraTx.hash.slice(0, 22)}…</code></a>
+                </div>
+              )}
+              {datos && (
+                <div className="dato">
+                  <span>Estado reconstruido desde la cadena (sin guardar nada en el navegador)</span>
+                  <code>{datos.permisos.length} permiso(s) · {datos.recibos.length} recibo(s) · saldo {usd(datos.saldo)} tUSD</code>
+                </div>
+              )}
+              {modo === 'simulated' && <p className="aviso">Estás en modo sin passkey: estas cifras no cuentan para la demo.</p>}
               <button className="boton" onClick={() => router.push('/tablon')}>Ir al Tablón</button>
-              <button className="boton sec" onClick={() => router.push('/asistente')}>Ir a mi asistente de pagos</button>
+              <button className="boton sec" onClick={() => router.push('/billetera')}>Depositar en mi billetera</button>
             </>
           )}
         </div>

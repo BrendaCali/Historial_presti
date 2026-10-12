@@ -15,7 +15,7 @@ export const RPC_URLS = [
 ].filter(Boolean);
 
 export const EXPLORER_URL = 'https://testnet.monadvision.com';
-export const SESSION_MINUTES = 10; // minutos sin actividad antes de bloquear la sesión
+export const SESSION_MINUTES = Number(process.env.NEXT_PUBLIC_SESSION_MINUTES) || 10; // minutos sin actividad antes de bloquear la sesión
 export const USD = 1_000_000n; // unidad del dólar de prueba (6 decimales)
 
 export const monad = defineChain({
