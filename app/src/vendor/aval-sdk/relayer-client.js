@@ -26,7 +26,7 @@ export function createRelayerClient(options) {
         const error = data.error;
         const retry = response.headers.get('retry-after');
         const extra = retry ? ` Reintenta en ${retry} s.` : '';
-        throw new AvalError(error?.code ?? `Http${response.status}`, `${error?.message ?? 'El relayer rechazó la solicitud.'}${extra}`);
+        throw new AvalError(error?.code ?? `Http${response.status}`, `${error?.message ?? 'El relayer rechazó la solicitud.'}${extra}`, Array.isArray(error?.args) ? error.args : []);
     }
     return {
         health: () => call('GET', '/health'),

@@ -40,4 +40,6 @@ export { browserAssertion, buildAuth, derToRS, fromBase64Url, publicKeyFromSpki,
 export { agentCardUri } from './erc8004.js';
 export { createRelayerClient } from './relayer-client.js';
 export { deserialize, serialize } from './wire.js';
+export { createIndexerClient } from './indexer.js';
+export { computeVerifiedScore } from './score.js';
 //# sourceMappingURL=index.js.map

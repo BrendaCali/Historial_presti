@@ -6,6 +6,7 @@ import { addressUrl, txUrl } from '../../../lib/aval/config';
 import { actividadToken } from '../../../lib/alchemy';
 import { useAval } from '../../AvalProvider';
 import Icono from '../_componentes/Icono';
+import PuntajeVerificado from './PuntajeVerificado';
 import { etiquetaRef } from '../aprobaciones/Aprobaciones';
 
 const corta = (d) => `${d.slice(0, 8)}…${d.slice(-6)}`;
@@ -49,6 +50,8 @@ export default function Actividad() {
           Servicio #{String(agente.service.agentId)} · {corta(agente.service.address)}
         </a>
       </Tarjeta>
+
+      <PuntajeVerificado />
 
       <Tarjeta icono="receipt_long" titulo="Pagos de tu agente (recibos onchain)">
         {recibos.length === 0 ? (

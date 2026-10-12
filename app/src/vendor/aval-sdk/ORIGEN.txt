@@ -1,2 +1,2 @@
-SDK de Aval (MIT), compilado de github.com/Alan021011/Aval, packages/sdk, commit 9b26b529c71cf72938f67ad550ff83a5b2c3ff50.
+SDK de Aval (MIT), compilado de github.com/Alan021011/Aval, packages/sdk, commit df09c8c0f8e18209aa735fe401c615a539cdcdb8.
 No editar a mano: se reemplaza cuando Alan publique el paquete en npm (entonces: npm install @aval/sdk y borrar esta carpeta).

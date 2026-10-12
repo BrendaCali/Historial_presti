@@ -4,6 +4,17 @@ Préstamos entre personas con reputación verificable, en Monad testnet. Tu pala
 
 App en Next.js (carpeta `app/`). Se entra solo con la huella: una passkey (Mera) crea o recupera la cuenta, sin contraseña ni frase semilla ni necesitar MON.
 
+## Instrucciones para los jueces
+
+**App en vivo:** https://app-wheat-eta-38.vercel.app · **Protocolo (Aval):** https://github.com/Alan021011/Aval · demo del protocolo: https://aval-demo-alpha.vercel.app
+
+1. **Crear una cuenta:** abre la app y pulsa **Crear cuenta con mi huella**. Una sola ceremonia de passkey; el relayer paga el gas. Necesitas un dispositivo con PRF (en Chrome de escritorio, passkeys guardadas en el Gestor de contraseñas de Google; iCloud Keychain y 1Password también sirven). Sin eso, usa **Probar sin passkey** (modo de prueba, rotulado).
+2. **Probar el flujo de un préstamo con dos personas:** abre dos pestañas con `/?u=ana` y `/?u=beto` en modo de prueba (o dos dispositivos con huella real). Ana deposita en **Billetera** y publica en el **Tablón**; Beto muestra interés; Ana lo elige; Beto acepta; Ana desembolsa; Beto abona; los dos se califican con el código de **Mi código**.
+3. **Prueba sin estado:** en **Actividad**, pulsa **Probar como dispositivo nuevo** y vuelve a entrar con la misma huella: cuenta, permisos y memoria reaparecen.
+4. **Asistente:** pregunta "ofertas con un presupuesto de 30 dólares". No pide permisos; los pagos autorizados (Aval) son un panel aparte y opcional.
+
+> Todo el dinero es **de prueba**. El estado del mercado vive en Vercel Blob con control de concurrencia; la cuenta, los permisos y las aprobaciones con huella viven en Monad testnet (Aval).
+
 ## Cómo funciona
 
 1. **Billetera:** cada persona tiene una billetera en **Bs de prueba**. Puede depositar y retirar (simula el paso con el banco, con topes y validaciones).
