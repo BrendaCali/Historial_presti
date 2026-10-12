@@ -6,6 +6,7 @@ import { addressUrl, txUrl } from '../../../lib/aval/config';
 import { actividadToken } from '../../../lib/alchemy';
 import { useAval } from '../../AvalProvider';
 import Icono from '../_componentes/Icono';
+import AvisosAlchemy from './AvisosAlchemy';
 import PuntajeVerificado from './PuntajeVerificado';
 import { etiquetaRef } from '../aprobaciones/Aprobaciones';
 
@@ -84,6 +85,8 @@ export default function Actividad() {
           </a>
         ))}
       </Tarjeta>
+
+      <AvisosAlchemy />
 
       <Tarjeta icono="timer" titulo="Alcance de la sesión (qué pide huella y qué no)">
         <p className="font-body-sm text-body-sm text-on-surface-variant">
