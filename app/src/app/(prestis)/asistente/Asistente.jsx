@@ -7,13 +7,13 @@ import { sinUmbral, useAval } from '../../AvalProvider';
 import Icono from '../_componentes/Icono';
 
 const SUGERENCIAS = [
-  'Busca préstamos hasta 300 Bs',
+  'Necesito un préstamo de 300 Bs',
   'Qué ofertas hay con un presupuesto de 50 dólares',
   'Solicitudes de gente que necesita plata',
   '¿Cómo va mi cuenta? ¿Qué me toca hacer?',
 ];
 const NOMBRES = {
-  buscar_ofertas: 'Buscó ofertas', mi_resumen: 'Revisó tu cuenta', me_interesa: 'Mostró interés',
+  buscar_ofertas: 'Buscó ofertas', mi_resumen: 'Revisó tu cuenta', me_interesa: 'Preparó tu interés (lo confirmas con la huella)',
   consultar_permiso: 'Consultó tu permiso de pagos', pagar: 'Pagó (Aval)', pedir_aprobacion: 'Pidió tu aprobación (Aval)',
 };
 
@@ -35,11 +35,36 @@ function Ofertas({ r }) {
   );
 }
 
+// El asistente prepara "Me interesa", pero quien lo registra es el usuario con su huella (passkey de Mera).
+function ConfirmarInteres({ id }) {
+  const { mercado, avisar, tocar } = useAval();
+  const [estado, setEstado] = useState('pendiente'); // pendiente | trabajando | hecho
+  const confirmar = async () => {
+    setEstado('trabajando');
+    try {
+      await mercado('interesar', { id }, { huella: { titulo: `Mostrar interés en la publicación ${id}`, detalle: 'Quien publicó verá tu perfil y podrá elegirte para el trato.' } });
+      tocar();
+      setEstado('hecho');
+      avisar('ok', `Quedó registrado tu interés en ${id}.`);
+    } catch (e) {
+      setEstado('pendiente');
+      avisar('error', e.message);
+    }
+  };
+  if (estado === 'hecho') return <p className="mt-2 font-label-md text-label-md text-primary flex items-center gap-1"><Icono nombre="check_circle" tam={18} /> Interés en {id} confirmado con tu huella.</p>;
+  return (
+    <button type="button" onClick={confirmar} disabled={estado === 'trabajando'} className="mt-2 h-11 px-4 rounded-xl bg-primary hover:bg-primary-fixed-dim text-on-primary font-label-lg text-label-lg font-bold flex items-center gap-2 disabled:opacity-60">
+      <Icono nombre="fingerprint" tam={22} /> Confirmar con mi huella · {id}
+    </button>
+  );
+}
+
 function Pasos({ pasos }) {
   if (!pasos?.length) return null;
   return (
     <>
       {pasos.filter((p) => p.herramienta === 'buscar_ofertas').map((p, i) => <Ofertas key={i} r={p.resultado} />)}
+      {pasos.filter((p) => p.herramienta === 'me_interesa' && p.resultado?.requiere_huella).map((p, i) => <ConfirmarInteres key={i} id={p.resultado.id} />)}
       <details className="mt-2 text-on-surface-variant">
         <summary className="cursor-pointer font-label-sm text-label-sm">Lo que hizo ({pasos.length} paso{pasos.length > 1 ? 's' : ''})</summary>
         <ol className="mt-1 flex flex-col gap-1">

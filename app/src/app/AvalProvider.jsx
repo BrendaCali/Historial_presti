@@ -10,7 +10,9 @@ import { AvalError, createAval, createRelayerClient } from '../vendor/aval-sdk/i
 import { RELAYER_BASE, SESSION_MINUTES, monad, publicClient, transport, usd } from '../lib/aval/config';
 import { forgetSimulatedAccount, realBackend, simulatedBackend } from '../lib/aval/passkey';
 import { createAccount, signIn } from '../lib/aval/session';
+import { bs } from '../lib/formato';
 import { cifrar, descifrar } from '../lib/memoria';
+import ModalHuella from './ModalHuella';
 import { construirPeticion, generarCodigoQR, llamarMercado } from '../lib/mercado/cliente';
 
 // Estado de Preste sobre Aval. TODO lo que se muestra del usuario se lee de la cadena (permisos, pedidos, recibos,
@@ -24,6 +26,13 @@ const PASOS = [
   { id: 'funds', label: 'Te damos saldo de prueba', state: 'pending' },
   { id: 'key', label: 'Activamos tu firma de aprobación', state: 'pending' },
 ];
+
+// Acciones que piden la huella antes de enviarse (mueven dinero o comprometen al usuario).
+const ACCIONES_CON_HUELLA = {
+  retirar: (d) => ({ titulo: `Retirar ${bs(d.monto)} de tu billetera`, detalle: 'El dinero sale de tu saldo en Preste.' }),
+  desembolsar: (d) => ({ titulo: `Desembolsar el préstamo del trato ${d.id}`, detalle: 'El dinero pasa de tu billetera a la de quien lo recibe.' }),
+  aceptar: (d) => ({ titulo: `Aceptar las condiciones del trato ${d.id}`, detalle: 'Te comprometes con el monto, las cuotas y el plazo acordados.' }),
+};
 
 const NUNCA = (1n << 128n) - 1n;
 export const sinUmbral = (umbral) => umbral >= NUNCA;
@@ -372,6 +381,31 @@ export default function AvalProvider({ children }) {
     avisar('ok', 'Pago aprobado con tu huella y ejecutado.');
   }), [actuar, avisar, medir, refrescar, relayer]);
 
+  // Confirmación con la huella: abre la ventana y pide a la passkey (Mera) una firma de WebAuthn sobre esta acción.
+  // Con una passkey real aparece el diálogo del sistema; en modo de prueba la huella está simulada.
+  const [huellaPend, setHuellaPend] = useState(null);
+  const confirmarHuella = useCallback((info) => new Promise((resolve, reject) => {
+    setHuellaPend({ info, resolve, reject, trabajando: false, error: '' });
+  }), []);
+  const usarHuella = useCallback(async () => {
+    const p = huellaPend;
+    if (!p) return;
+    setHuellaPend({ ...p, trabajando: true, error: '' });
+    try {
+      const reto = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify({ info: p.info, t: Date.now(), n: crypto.randomUUID() })));
+      await backend.current.assertionProvider({ credentialId: sesion.current.credentialId, challenge: new Uint8Array(reto) });
+      anotar(`Huella confirmada: ${p.info.titulo}`);
+      setHuellaPend(null);
+      p.resolve();
+    } catch (e) {
+      setHuellaPend({ ...p, trabajando: false, error: errorAmable(e) });
+    }
+  }, [huellaPend, anotar]);
+  const cancelarHuella = useCallback(() => {
+    huellaPend?.reject(new Error('Cancelaste la confirmación con tu huella. No se hizo nada.'));
+    setHuellaPend(null);
+  }, [huellaPend]);
+
   // Memoria cifrada del asistente. Se cifra aquí con la clave derivada de la huella; el servidor solo guarda texto cifrado.
   const MAX_MENSAJES = 40;
   const leerMemoria = useCallback(async () => {
@@ -404,13 +438,18 @@ export default function AvalProvider({ children }) {
 
   // Mercado de préstamos: cada petición se firma con la cuenta de Mera (sin ventanas). Las lecturas ("ver-…") no
   // renuevan la sesión, para que el refresco automático de las pantallas no la mantenga abierta para siempre.
-  const mercado = useCallback(async (accion, datos = {}) => {
+  // Las acciones que mueven dinero o comprometen al usuario piden su huella antes de enviarse (confirmarHuella).
+  const mercado = useCallback(async (accion, datos = {}, opciones = {}) => {
     const s = sesion.current;
     if (!s) throw new Error('La sesión está bloqueada. Usa tu huella para continuar.');
+    if (ACCIONES_CON_HUELLA[accion] || opciones.huella) {
+      const info = ACCIONES_CON_HUELLA[accion]?.(datos) ?? opciones.huella;
+      await confirmarHuella(typeof info === 'object' ? info : { titulo: 'Confirma esta acción' });
+    }
     const r = await llamarMercado(s.account, accion, datos);
     if (!accion.startsWith('ver-')) tocar();
     return r;
-  }, [tocar]);
+  }, [tocar, confirmarHuella]);
 
   const peticionFirmada = useCallback(async (accion, datos) => {
     const s = sesion.current;
@@ -436,5 +475,10 @@ export default function AvalProvider({ children }) {
     credentialId: sesion.current?.credentialId ?? null,
     usd,
   };
-  return <Ctx.Provider value={valor}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={valor}>
+      {children}
+      <ModalHuella pendiente={huellaPend} modo={modo} alUsar={usarHuella} alCancelar={cancelarHuella} />
+    </Ctx.Provider>
+  );
 }

@@ -22,7 +22,7 @@ Reglas:
 2. Presenta pocas opciones, ordenadas de menor a mayor tasa, con monto, plazo, cuotas, tasa mensual y total a devolver. Menciona el id de cada una (por ejemplo P3) para que el usuario la abra.
 3. Si no hay resultados, dilo claro y sugiere ampliar el presupuesto o el plazo, o publicar su propia solicitud en el Tablón.
 4. Usa mi_resumen cuando pregunte por su saldo, sus tratos o qué debe hacer.
-5. Usa me_interesa solo si el usuario te lo pide de forma explícita para una publicación concreta.
+5. Usa me_interesa solo si el usuario te lo pide de forma explícita para una publicación concreta. Tú no registras nada: la herramienta deja la acción lista y el usuario la confirma con su huella en la app; díselo así.
 6. Nunca inventes ofertas ni cifras: cuenta solo lo que devolvieron las herramientas. Responde en español, corto y claro.`;
 
 const SISTEMA_PAGOS = `
@@ -39,7 +39,7 @@ const HERRAMIENTAS_MERCADO = [
     tasa_max_mensual: { type: 'number', description: 'Tasa mensual máxima en %.' },
   }),
   fn('mi_resumen', 'Resume la cuenta del usuario: saldo en Bs, tratos que requieren su atención y publicaciones abiertas.'),
-  fn('me_interesa', 'Muestra interés del usuario en una publicación (solo si lo pidió de forma explícita).', { id: { type: 'string', description: 'Id de la publicación, por ejemplo P3.' } }, ['id']),
+  fn('me_interesa', 'Prepara el interés del usuario en una publicación (solo si lo pidió de forma explícita). El usuario lo confirma con su huella.', { id: { type: 'string', description: 'Id de la publicación, por ejemplo P3.' } }, ['id']),
 ];
 
 const HERRAMIENTAS_PAGOS = [
@@ -124,8 +124,12 @@ async function ejecutarMercado(nombre, entrada, quien) {
       };
     }
     if (nombre === 'me_interesa') {
-      const r = await transaccion((e) => L.interesar(e, quien, { id: String(entrada.id) }, Date.now()));
-      return { ok: true, interesados: r.interesados };
+      // El asistente no se compromete por el usuario: valida la publicación y deja la confirmación a su huella en la app.
+      const { estado } = await leer();
+      const id = String(entrada.id).toUpperCase();
+      const p = L.vistaPublicaciones(estado, { viendo: quien }).find((x) => x.id === id);
+      if (!p) return { ok: false, mensaje: `No encuentro la publicación ${id}.` };
+      return { ok: true, requiere_huella: true, id, nota: 'Falta que el usuario confirme con su huella en la app; hasta entonces no se registra nada.' };
     }
     return { ok: false, mensaje: `Herramienta desconocida: ${nombre}` };
   } catch (e) {
@@ -199,7 +203,7 @@ async function simulado(historial, ctx) {
   const interes = t.match(/me interesa\s+(?:la\s+|el\s+)?(p\d+)/);
   if (interes) {
     const r = await paso('me_interesa', { id: interes[1].toUpperCase() });
-    return { respuesta: r.ok ? `Listo, mostraste interés en ${interes[1].toUpperCase()}.` : `No pude: ${r.mensaje}`, pasos };
+    return { respuesta: r.ok ? `Preparé tu interés en ${interes[1].toUpperCase()}. Confírmalo con tu huella para que quede registrado.` : `No pude: ${r.mensaje}`, pasos };
   }
   const entrada = {
     ...(monto !== undefined ? { presupuesto: monto, moneda: usdMoneda ? 'USD' : 'BOB' } : {}),
